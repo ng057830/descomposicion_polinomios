@@ -151,7 +151,7 @@ function loadExercise(idx) {
   state.blocks = [createEmptyBlock(4)];
   state.conclusionShown = false;
 
-  document.getElementById('candidatesBox').classList.add('hidden');
+  document.getElementById('candidatesBox').classList.remove('hidden');
   document.getElementById('conclusionCard').classList.add('hidden');
   hideFeedback();
 
@@ -167,8 +167,9 @@ function renderCandidates(coeffs) {
   const cands = getCandidateRationalRoots(lead, indep);
 
   document.getElementById('candidatesExplain').innerHTML =
-    `Posibles raíces racionales para el paso actual: $${formatDivisorsRatioLatex(indep, lead)}$<br>` +
-    `Haz clic en una raíz candidata para probarla en el paso activo:`;
+    `<div style="margin-bottom:0.35rem;"><strong>Posibles raíces</strong> $= \\dfrac{\\text{Divisores del término independiente } (D_{${indep}})}{\\text{Divisores del coeficiente líder } (D_{${lead}})}$</div>` +
+    `<div style="margin-bottom:0.45rem;">$$${formatDivisorsRatioLatex(indep, lead)}$$</div>` +
+    `Haz clic en una posible raíz (puede ser válida o no) o pulsa <strong>«🎲 Proponer posible raíz»</strong> para probarla en la tabla:`;
 
   const chips = document.getElementById('candidatesChips');
   chips.innerHTML = '';
@@ -595,6 +596,35 @@ function showConclusion(extCount) {
 document.getElementById('toggleCandidatesBtn').addEventListener('click', () => {
   document.getElementById('candidatesBox').classList.toggle('hidden');
   renderMath(document.getElementById('candidatesBox'));
+});
+
+document.getElementById('proposeRootBtn').addEventListener('click', () => {
+  const bIdx = state.blocks.findIndex((b) => !b.locked);
+  if (bIdx === -1) return;
+  const coeffs = getActiveCoeffsForBlock(bIdx);
+  const cands = getCandidateRationalRoots(coeffs[0].num, coeffs[coeffs.length - 1].num);
+  const validCands = cands.filter((r) => evalPoly(coeffs, r).isZero());
+  const invalidCands = cands.filter((r) => !evalPoly(coeffs, r).isZero());
+
+  const prevRoot = state.blocks[bIdx].rootStr;
+  const pickValid = invalidCands.length === 0 || (validCands.length > 0 && Math.random() < 0.5);
+  let pool = pickValid ? validCands : invalidCands;
+  const filtered = pool.filter((r) => r.toString() !== prevRoot);
+  if (filtered.length > 0) pool = filtered;
+
+  const chosen = pool[Math.floor(Math.random() * pool.length)];
+  if (!chosen) return;
+
+  state.blocks[bIdx].rootStr = chosen.toString();
+  const rootInp = document.querySelector(`input[data-block="${bIdx}"][data-role="root"]`);
+  if (rootInp) {
+    rootInp.value = chosen.toString();
+    rootInp.classList.remove('is-correct', 'is-wrong');
+  }
+  showFeedback(
+    `🎲 Te propongo probar la posible raíz $r = ${chosen.toLatex()}$ (tomada de $\\frac{D_{${coeffs[coeffs.length - 1].num}}}{D_{${coeffs[0].num}}}$). Completa la tabla de Ruffini para descubrir si es <strong>válida</strong> (Resto $= 0$) o <strong>no válida</strong> (Resto $\\neq 0$).`,
+    'info'
+  );
 });
 
 document.getElementById('hintRootBtn').addEventListener('click', () => {

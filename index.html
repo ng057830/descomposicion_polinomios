@@ -86,15 +86,16 @@
           <div class="card hints-card">
             <div class="hints-header">
               <button id="toggleCandidatesBtn" class="btn-ghost">
-                🔍 Ver posibles raíces racionales ($\pm p/q$)
+                🔍 Ocultar/Mostrar $\frac{\text{Divisores del término independiente}}{\text{Divisores del coeficiente líder}}$
               </button>
               <div class="action-chips">
-                <button id="hintRootBtn" class="btn-secondary btn-sm">💡 Pista de raíz</button>
+                <button id="proposeRootBtn" class="btn-primary btn-sm">🎲 Proponer posible raíz</button>
+                <button id="hintRootBtn" class="btn-secondary btn-sm">💡 Pista (raíz válida)</button>
                 <button id="autoStepBtn" class="btn-secondary btn-sm">⚡ Autocompletar paso</button>
                 <button id="showFullSolBtn" class="btn-secondary btn-sm">👁️ Ver solución</button>
               </div>
             </div>
-            <div id="candidatesBox" class="candidates-box hidden">
+            <div id="candidatesBox" class="candidates-box">
               <p class="candidates-explain" id="candidatesExplain"></p>
               <div id="candidatesChips" class="candidates-chips"></div>
             </div>
