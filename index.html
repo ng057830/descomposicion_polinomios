@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Descomposición de Polinomios | Ruffini Interactivo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-area">
+        <div class="logo-badge">$P(x)$</div>
+        <div class="app-title">
+          <h1>Descomposición de Polinomios</h1>
+          <p>Tabla de Ruffini Extendida (1 o 2 veces) · Raíces Racionales $\frac{p}{q}$ · Factorización Completa</p>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="progress-pill" id="globalProgressPill" title="Ejercicios completados">
+          ✅ <span id="completedCount">0</span> / 20 completados
+        </div>
+        <button id="soundToggleBtn" class="btn-icon" title="Activar/Desactivar Sonido">
+          <span id="soundIcon">🔊</span>
+        </button>
+        <button id="themeToggleBtn" class="btn-icon" title="Cambiar Tema">
+          <span id="themeIcon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav-tabs">
+    <div class="nav-container">
+      <button class="nav-btn active" data-tab="tab-practice">
+        <span>🎯</span> Práctica Interactiva (20 Ejercicios)
+      </button>
+      <button class="nav-btn" data-tab="tab-guide">
+        <span>📘</span> Desarrollo Paso a Paso (Ejemplo Base)
+      </button>
+      <button class="nav-btn" data-tab="tab-solver">
+        <span>🧮</span> Solucionador Libre
+      </button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+
+    <!-- ==============================================
+         TAB 1: PRÁCTICA INTERACTIVA (20 POLINOMIOS)
+         ============================================== -->
+    <section id="tab-practice" class="tab-panel active">
+      <div class="practice-layout">
+
+        <!-- Sidebar selector de ejercicios -->
+        <aside class="exercise-sidebar card">
+          <div class="sidebar-header">
+            <h3>Lista de Polinomios</h3>
+            <button id="resetProgressBtn" class="btn-text-sm" title="Reiniciar progreso">Reiniciar</button>
+          </div>
+          <div id="exerciseList" class="exercise-list"></div>
+        </aside>
+
+        <!-- Área principal de trabajo -->
+        <div class="workspace-area">
+          <div class="card problem-banner">
+            <div class="problem-top">
+              <div>
+                <span class="badge-tag" id="currentExTag">Ejercicio 1</span>
+                <span class="badge-sub" id="currentExNote">Usa fracciones como 1/2 o -3/2</span>
+              </div>
+              <div class="problem-nav-btns">
+                <button id="prevExBtn" class="btn-secondary btn-sm">← Anterior</button>
+                <button id="nextExBtn" class="btn-secondary btn-sm">Siguiente →</button>
+              </div>
+            </div>
+            <div class="poly-display" id="currentPolyDisplay"></div>
+          </div>
+
+          <!-- Ayuda de posibles raíces racionales -->
+          <div class="card hints-card">
+            <div class="hints-header">
+              <button id="toggleCandidatesBtn" class="btn-ghost">
+                🔍 Ver posibles raíces racionales ($\pm p/q$)
+              </button>
+              <div class="action-chips">
+                <button id="hintRootBtn" class="btn-secondary btn-sm">💡 Pista de raíz</button>
+                <button id="autoStepBtn" class="btn-secondary btn-sm">⚡ Autocompletar paso</button>
+                <button id="showFullSolBtn" class="btn-secondary btn-sm">👁️ Ver solución</button>
+              </div>
+            </div>
+            <div id="candidatesBox" class="candidates-box hidden">
+              <p class="candidates-explain" id="candidatesExplain"></p>
+              <div id="candidatesChips" class="candidates-chips"></div>
+            </div>
+          </div>
+
+          <!-- Tabla Interactiva de Ruffini -->
+          <div class="card ruffini-card">
+            <div class="ruffini-card-header">
+              <div>
+                <h3>Tabla de Ruffini Interactiva</h3>
+                <p class="subtitle-sm">
+                  Puedes extender la tabla <strong>1 o 2 veces</strong> (o hasta 3). Acepta enteros (<code>1</code>, <code>-3</code>), fracciones (<code>1/2</code>, <code>-3/2</code>) o decimales.
+                </p>
+              </div>
+              <div class="extension-controls">
+                <span class="ext-badge" id="extBadge">Extensión: 1.er paso</span>
+                <button id="resetTableBtn" class="btn-secondary btn-sm">🔄 Limpiar tabla</button>
+              </div>
+            </div>
+
+            <div class="table-scroll">
+              <table class="ruffini-table" id="interactiveRuffiniTable">
+                <!-- Generado dinámicamente por app.js -->
+              </table>
+            </div>
+
+            <div id="stepFeedback" class="feedback-banner hidden"></div>
+
+            <div class="table-actions">
+              <button id="checkActiveStepBtn" class="btn-primary">
+                ✓ Comprobar paso actual
+              </button>
+              <button id="extendTableBtn" class="btn-accent hidden">
+                ➕ Extender tabla (siguiente paso de Ruffini)
+              </button>
+              <button id="finishAt1Btn" class="btn-secondary hidden">
+                🏁 Dejar en 1 extensión (cociente cuadrático)
+              </button>
+            </div>
+          </div>
+
+          <!-- Sección "Por lo tanto..." -->
+          <div class="card conclusion-card hidden" id="conclusionCard">
+            <h3>Por lo tanto,</h3>
+            <div id="conclusionContent" class="conclusion-content"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 2: EJEMPLO PASO A PASO (DESARROLLO BASE)
+         ============================================== -->
+    <section id="tab-guide" class="tab-panel">
+      <div class="card">
+        <div class="guide-header">
+          <div>
+            <span class="badge-tag">Ejemplo Guía (Desarrollo Original)</span>
+            <h2>Descomposición de $2x^3 - 3x^2 - 14x + 15$</h2>
+            <p class="subtitle-sm">Observa cómo la tabla de Ruffini se extiende <strong>2 veces</strong> hasta obtener el factor lineal $(ax + b)$.</p>
+          </div>
+          <div class="guide-controls">
+            <button id="guidePrevBtn" class="btn-secondary btn-sm">← Paso anterior</button>
+            <button id="guideNextBtn" class="btn-primary btn-sm">Siguiente paso →</button>
+            <button id="guideResetBtn" class="btn-secondary btn-sm">↺ Reiniciar</button>
+          </div>
+        </div>
+
+        <div class="guide-step-indicator" id="guideStepText"></div>
+
+        <div class="table-scroll">
+          <table class="ruffini-table guide-table" id="guideRuffiniTable"></table>
+        </div>
+
+        <div class="guide-conclusion" id="guideConclusion"></div>
+      </div>
+
+      <div class="card" style="margin-top: 1.25rem;">
+        <h3>💡 ¿Qué cambia cuando las raíces son fracciones (como en los 20 ejercicios)?</h3>
+        <div class="grid-2" style="margin-top: 0.75rem;">
+          <div class="info-box">
+            <h4>1. Buscar raíces racionales $\frac{p}{q}$</h4>
+            <p>Por el Teorema de la Raíz Racional, toda raíz fraccionaria $\frac{p}{q}$ cumple que $p$ divide al término independiente y $q$ divide al coeficiente principal de $x^3$.</p>
+            <p style="margin-top:0.5rem;">Ejemplo: en $8x^3 - 12x^2 - 2x + 3$, $p \mid 3$ ($\pm 1, \pm 3$) y $q \mid 8$ ($1, 2, 4, 8$). Así surgen candidatos como $\frac{1}{2}, -\frac{1}{2}, \frac{3}{2}$.</p>
+          </div>
+          <div class="info-box">
+            <h4>2. Pasar de $(x - \frac{p}{q})$ a factores enteros</h4>
+            <p>Al extender la tabla 2 veces con raíces $r_1 = \frac{1}{2}$ y $r_2 = \frac{3}{2}$ en $8x^3 - 12x^2 - 2x + 3$, el cociente final es $8x + 4 = 4(2x + 1)$.</p>
+            <p style="margin-top:0.5rem;">Al repartir el factor $4 = 2 \cdot 2$ en las fracciones:</p>
+            <div class="formula-pill">
+              $(x - \frac{1}{2})(x - \frac{3}{2})(8x + 4) = (2x - 1)(2x - 3)(2x + 1)$
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================
+         TAB 3: SOLUCIONADOR LIBRE
+         ============================================== -->
+    <section id="tab-solver" class="tab-panel">
+      <div class="card">
+        <h2>Solucionador Libre de Polinomios Cúbicos</h2>
+        <p class="subtitle-sm">Ingresa los coeficientes de $Ax^3 + Bx^2 + Cx + D$ y elige cuántas veces extender la tabla (1, 2 o 3).</p>
+
+        <div class="solver-inputs">
+          <div class="coeff-field">
+            <label for="solA">$x^3$</label>
+            <input type="number" id="solA" value="8">
+          </div>
+          <div class="coeff-field">
+            <label for="solB">$x^2$</label>
+            <input type="number" id="solB" value="-12">
+          </div>
+          <div class="coeff-field">
+            <label for="solC">$x^1$</label>
+            <input type="number" id="solC" value="-2">
+          </div>
+          <div class="coeff-field">
+            <label for="solD">$x^0$</label>
+            <input type="number" id="solD" value="3">
+          </div>
+          <div class="coeff-field">
+            <label for="solExt">Extensiones</label>
+            <select id="solExt">
+              <option value="1">1 vez (cuadrático)</option>
+              <option value="2" selected>2 veces (lineal ax+b)</option>
+              <option value="3">3 veces (todas las raíces)</option>
+            </select>
+          </div>
+          <button id="runSolverBtn" class="btn-primary">Resolver por Ruffini</button>
+        </div>
+
+        <div id="solverResult" class="solver-result"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="math-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
