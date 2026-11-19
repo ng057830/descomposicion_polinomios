@@ -15,7 +15,7 @@
   <header class="app-header">
     <div class="header-container">
       <div class="brand-area">
-        <div class="logo-badge"><i>P</i>(<i>x</i>)</div>
+        <div class="logo-badge" style="font-size: 1.55rem;">🧩</div>
         <div class="app-title">
           <h1>Descomposición de Polinomios</h1>
           <p>Tabla de Ruffini Extendida (1 o 2 veces) · Raíces Racionales <i>p</i>/<i>q</i> · Factorización Completa</p>
@@ -42,9 +42,6 @@
       </button>
       <button class="nav-btn" data-tab="tab-guide">
         <span>📘</span> Desarrollo Paso a Paso (Ejemplo Base)
-      </button>
-      <button class="nav-btn" data-tab="tab-solver">
-        <span>🧮</span> Solucionador Libre
       </button>
     </div>
   </nav>
@@ -194,46 +191,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- ==============================================
-         TAB 3: SOLUCIONADOR LIBRE
-         ============================================== -->
-    <section id="tab-solver" class="tab-panel">
-      <div class="card">
-        <h2>Solucionador Libre de Polinomios Cúbicos</h2>
-        <p class="subtitle-sm">Ingresa los coeficientes de $Ax^3 + Bx^2 + Cx + D$ y elige cuántas veces extender la tabla (1, 2 o 3).</p>
-
-        <div class="solver-inputs">
-          <div class="coeff-field">
-            <label for="solA">$x^3$</label>
-            <input type="number" id="solA" value="8">
-          </div>
-          <div class="coeff-field">
-            <label for="solB">$x^2$</label>
-            <input type="number" id="solB" value="-12">
-          </div>
-          <div class="coeff-field">
-            <label for="solC">$x^1$</label>
-            <input type="number" id="solC" value="-2">
-          </div>
-          <div class="coeff-field">
-            <label for="solD">$x^0$</label>
-            <input type="number" id="solD" value="3">
-          </div>
-          <div class="coeff-field">
-            <label for="solExt">Extensiones</label>
-            <select id="solExt">
-              <option value="1">1 vez (cuadrático)</option>
-              <option value="2" selected>2 veces (lineal ax+b)</option>
-              <option value="3">3 veces (todas las raíces)</option>
-            </select>
-          </div>
-          <button id="runSolverBtn" class="btn-primary">Resolver por Ruffini</button>
-        </div>
-
-        <div id="solverResult" class="solver-result"></div>
       </div>
     </section>
 
