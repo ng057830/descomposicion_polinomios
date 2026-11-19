@@ -290,6 +290,88 @@ function formatIntegerFactorizationLatex(coeffs, roots) {
 }
 
 /**
+ * Formatea D_{a0}/D_{an} = {±...}/{±...} en LaTeX.
+ */
+function formatDivisorsRatioLatex(a0, an, chosenRoot = null) {
+  const pDivs = getDivisors(a0).map((d) => `\\pm ${d}`).join(', ');
+  const qDivs = getDivisors(an).map((d) => `\\pm ${d}`).join(', ');
+  const rootSuffix = chosenRoot ? ` \\;\\longrightarrow\\; r = ${Frac.parse(chosenRoot).toLatex()}` : '';
+  return `\\dfrac{D_{${a0}}}{D_{${an}}} = \\dfrac{\\{${pDivs}\\}}{\\{${qDivs}\\}}${rootSuffix}`;
+}
+
+/**
+ * Genera los pasos con \\underbrace para pasar de (x - r1)(x - r2)(ax + b) a factores enteros.
+ */
+function buildUnderbraceStepsLatex(coeffs, r1, r2, a, b) {
+  const f1 = Frac.parse(r1);
+  const f2 = Frac.parse(r2);
+  const fa = Frac.parse(a);
+  const fb = Frac.parse(b);
+  const polyLatex = formatPolyLatex(coeffs);
+
+  const aInt = fa.num; // fa, fb son enteros cuando coeffs son enteros y r1, r2 racionales? Ojo: si r1=p1/q1, a = A (entero), b puede ser entero si q1 | ...
+  // En general, g = gcd(|a|, |b|) si ambos son enteros
+  if (fa.den !== 1 || fb.den !== 1) {
+    return [`${polyLatex} = ${formatRootFactorLatex(f1)}${formatRootFactorLatex(f2)}${formatLinearLatex(fa, fb)}`];
+  }
+
+  const g = Frac.gcd(Math.abs(fa.num), Math.abs(fb.num));
+  const ap = new Frac(fa.num / g, 1);
+  const bp = new Frac(fb.num / g, 1);
+  const q1 = f1.den;
+  const q2 = f2.den;
+  const k = g / (q1 * q2);
+
+  const rf1 = formatRootFactorLatex(f1);
+  const rf2 = formatRootFactorLatex(f2);
+  const linOrig = formatLinearLatex(fa, fb);
+  const linSimp = formatLinearLatex(ap, bp);
+
+  const lines = [];
+  if (g === 1 && q1 === 1 && q2 === 1) {
+    lines.push(`${polyLatex} = ${rf1}${rf2}${linOrig}`);
+    return lines;
+  }
+
+  lines.push(`${rf1}${rf2}\\underbrace{${linOrig}}`);
+  if (g !== 1) {
+    lines.push(`${rf1}${rf2} \\cdot ${g}${linSimp}`);
+    lines.push(`${g}${rf1}${rf2}${linSimp}`);
+  }
+
+  if (q1 > 1 || q2 > 1) {
+    const parts = [];
+    if (k !== 1) parts.push(`${k}`);
+    if (q1 > 1) parts.push(`${q1}`);
+    if (q2 > 1) parts.push(`${q2}`);
+    if (parts.length > 1) {
+      lines.push(`${parts.join(' \\cdot ')}${rf1}${rf2}${linSimp}`);
+    }
+    const left1 = q1 > 1 ? `\\underbrace{${q1}${rf1}}` : rf1;
+    const left2 = q2 > 1 ? `\\underbrace{${q2}${rf2}}` : rf2;
+    const kPrefix = k !== 1 ? `${k}` : '';
+    lines.push(`${kPrefix}${left1} \\cdot ${left2}${linSimp}`);
+  }
+
+  const fac1 = formatLinearLatex(q1, -f1.num);
+  const fac2 = formatLinearLatex(q2, -f2.num);
+  const kPrefix = k !== 1 ? `${k}` : '';
+  lines.push(`${polyLatex} = ${kPrefix}${fac1}${fac2}${linSimp}`);
+  return lines;
+}
+
+/**
+ * Genera ejemplos de división exacta a partir de 3 factores lineales.
+ */
+function buildDivisionExamplesLatex(coeffs, f1Latex, f2Latex, f3Latex) {
+  const polyLatex = formatPolyLatex(coeffs);
+  return [
+    `\\dfrac{${polyLatex}}{${f3Latex.replace(/^\(|\)$/g, '')}} = ${f1Latex}${f2Latex}`,
+    `\\dfrac{${polyLatex}}{${f2Latex.replace(/^\(|\)$/g, '')}} = ${f1Latex}${f3Latex}`,
+  ];
+}
+
+/**
  * Lista de ejercicios: Ejemplo 1 (del enunciado) + los 20 polinomios solicitados.
  */
 const EXERCISES = [

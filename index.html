@@ -152,11 +152,15 @@
       <div class="card">
         <div class="guide-header">
           <div>
-            <span class="badge-tag">Ejemplo Guía (Desarrollo Original)</span>
-            <h2>Descomposición de $2x^3 - 3x^2 - 14x + 15$</h2>
+            <span class="badge-tag" id="guideBadge">Ejemplo 1 (Desarrollo Base)</span>
+            <h2 id="guideTitle">Descomposición de $2x^3 - 3x^2 - 14x + 15$</h2>
             <p class="subtitle-sm">Observa cómo la tabla de Ruffini se extiende <strong>2 veces</strong> hasta obtener el factor lineal $(ax + b)$.</p>
           </div>
           <div class="guide-controls">
+            <button class="btn-secondary btn-sm guide-ex-btn active" data-guide="0">Ejemplo 1</button>
+            <button class="btn-secondary btn-sm guide-ex-btn" data-guide="1">Ejemplo 2</button>
+            <button class="btn-secondary btn-sm guide-ex-btn" data-guide="2">Ejemplo 3 (Fracciones)</button>
+            <span style="width:1px;background:var(--border);margin:0 0.25rem;"></span>
             <button id="guidePrevBtn" class="btn-secondary btn-sm">← Paso anterior</button>
             <button id="guideNextBtn" class="btn-primary btn-sm">Siguiente paso →</button>
             <button id="guideResetBtn" class="btn-secondary btn-sm">↺ Reiniciar</button>

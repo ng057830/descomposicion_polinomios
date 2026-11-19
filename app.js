@@ -162,13 +162,13 @@ function loadExercise(idx) {
 }
 
 function renderCandidates(coeffs) {
-  const cands = getCandidateRationalRoots(coeffs[0], coeffs[3]);
-  const pDivs = getDivisors(coeffs[3]).join(', ');
-  const qDivs = getDivisors(coeffs[0]).join(', ');
+  const lead = coeffs[0] instanceof Frac ? coeffs[0].num : coeffs[0];
+  const indep = coeffs[coeffs.length - 1] instanceof Frac ? coeffs[coeffs.length - 1].num : coeffs[coeffs.length - 1];
+  const cands = getCandidateRationalRoots(lead, indep);
 
   document.getElementById('candidatesExplain').innerHTML =
-    `Divisores de $p = ${Math.abs(coeffs[3])}$: $\\{\\pm ${pDivs}\\}$ · ` +
-    `Divisores de $q = ${Math.abs(coeffs[0])}$: $\\{${qDivs}\\}$. Haz clic en una raíz candidata para probarla en el paso activo:`;
+    `Posibles raíces racionales para el paso actual: $${formatDivisorsRatioLatex(indep, lead)}$<br>` +
+    `Haz clic en una raíz candidata para probarla en el paso activo:`;
 
   const chips = document.getElementById('candidatesChips');
   chips.innerHTML = '';
@@ -443,10 +443,16 @@ document.getElementById('checkActiveStepBtn').addEventListener('click', () => {
 document.getElementById('extendTableBtn').addEventListener('click', () => {
   const nextCols = 4 - state.blocks.length;
   if (nextCols < 2) return;
+  const newBlockIdx = state.blocks.length;
   state.blocks.push(createEmptyBlock(nextCols));
   state.conclusionShown = false;
   document.getElementById('conclusionCard').classList.add('hidden');
   hideFeedback();
+  const activeCoeffs = getActiveCoeffsForBlock(newBlockIdx);
+  if (activeCoeffs) {
+    renderCandidates(activeCoeffs);
+    renderMath(document.getElementById('candidatesBox'));
+  }
   renderInteractiveTable();
 });
 
@@ -533,17 +539,33 @@ function showConclusion(extCount) {
       playTone('ok');
       celebrate();
       saveCompleted(ex.id);
+
+      const d1Latex = formatDivisorsRatioLatex(ex.coeffs[3], ex.coeffs[0], r1);
+      const q1 = state.blocks[0].computed.quotient;
+      const d2Latex = formatDivisorsRatioLatex(q1[q1.length - 1].num, q1[0].num, r2);
+      const underbraceLines = buildUnderbraceStepsLatex(ex.coeffs, r1, r2, a, b);
+
+      // Factores enteros para ejemplos de división
+      const g = Frac.gcd(Math.abs(a.num), Math.abs(b.num));
+      const f1Div = formatLinearLatex(r1.den, -r1.num);
+      const f2Div = formatLinearLatex(r2.den, -r2.num);
+      const f3Div = formatLinearLatex(new Frac(a.num / g, 1), new Frac(b.num / g, 1));
+      const divExamples = buildDivisionExamplesLatex(ex.coeffs, f1Div, f2Div, f3Div);
+
       box.innerHTML = `
-        <div class="formula-pill" style="border-color: var(--accent);">
-          $${polyLatex} = ${formatRootFactorLatex(r1)}${formatRootFactorLatex(r2)}${formatLinearLatex(a, b)}$
+        <div class="formula-pill" style="text-align:left; font-size:0.92rem;">
+          <strong>Conjuntos de divisores usados:</strong>
+          <div style="margin-top:0.4rem;">$$${d1Latex}$$</div>
+          <div>$$${d2Latex}$$</div>
         </div>
-        ${
-          intFactorLatex
-            ? `<div class="formula-pill" style="margin-top:0.5rem;">
-                 <strong>Forma equivalente con coeficientes enteros:</strong> $${polyLatex} = ${intFactorLatex}$
-               </div>`
-            : ''
-        }
+        <div class="formula-pill" style="border-color: var(--accent);">
+          <strong>Desarrollo completo:</strong>
+          ${underbraceLines.map((ln) => `<div style="margin:0.35rem 0;">$$${ln}$$</div>`).join('')}
+        </div>
+        <div class="formula-pill" style="text-align:left; font-size:0.95rem;">
+          <strong>Esto nos sirve si queremos hacer la división:</strong>
+          ${divExamples.map((dv) => `<div style="margin-top:0.45rem; text-align:center;">$$${dv}$$</div>`).join('')}
+        </div>
       `;
       renderMath(box);
     });
@@ -664,47 +686,60 @@ document.getElementById('resetProgressBtn').addEventListener('click', () => {
   renderSidebar();
 });
 
-// ---------------- TAB 2: EJEMPLO PASO A PASO ----------------
+// ---------------- TAB 2: EJEMPLOS PASO A PASO (3 EJEMPLOS BASE) ----------------
 
-const GUIDE_STEPS = [
+const GUIDE_EXAMPLES = [
   {
-    text: '<strong>Paso 0:</strong> Escribimos las potencias ($x^3, x^2, x^1, x^0$) y los coeficientes del polinomio $2x^3 - 3x^2 - 14x + 15$.',
-    reveal: 0,
+    badge: 'Ejemplo 1 (Raíces enteras + Divisiones)',
+    coeffs: [2, -3, -14, 15],
+    r1: '1',
+    r2: '3',
+    hasDivisions: true,
   },
   {
-    text: '<strong>Paso 1 (1.ª extensión):</strong> Probamos la raíz $r_1 = 1$. Bajamos el primer coeficiente ($2$) a la fila Cociente/Resto.',
-    reveal: 1,
+    badge: 'Ejemplo 2 (Coeficiente principal negativo)',
+    coeffs: [-2, -1, 5, -2],
+    r1: '1',
+    r2: '-2',
+    hasDivisions: true,
   },
   {
-    text: '<strong>Paso 2:</strong> Multiplicamos $1 \\cdot 2 = 2$ y sumamos $-3 + 2 = -1$.',
-    reveal: 2,
-  },
-  {
-    text: '<strong>Paso 3:</strong> Multiplicamos $1 \\cdot (-1) = -1$ y sumamos $-14 + (-1) = -15$.',
-    reveal: 3,
-  },
-  {
-    text: '<strong>Paso 4:</strong> Multiplicamos $1 \\cdot (-15) = -15$ y sumamos $15 + (-15) = 0$. ¡Resto $0$! Con 1 extensión tendríamos $(x - 1)(2x^2 - x - 15)$.',
-    reveal: 4,
-  },
-  {
-    text: '<strong>Paso 5 (2.ª extensión):</strong> Extendemos la tabla usando la raíz $r_2 = 3$. Bajamos el $2$ del cociente anterior.',
-    reveal: 5,
-  },
-  {
-    text: '<strong>Paso 6:</strong> Multiplicamos $3 \\cdot 2 = 6$ y sumamos $-1 + 6 = 5$.',
-    reveal: 6,
-  },
-  {
-    text: '<strong>Paso 7:</strong> Multiplicamos $3 \\cdot 5 = 15$ y sumamos $-15 + 15 = 0$. ¡Resto $0$! El último cociente es $2x + 5$.',
-    reveal: 7,
+    badge: 'Ejemplo 3 (Raíces fraccionarias + D_{a0}/D_{an} + llaves)',
+    coeffs: [12, 4, -3, -1],
+    r1: '1/2',
+    r2: '-1/3',
+    hasDivisions: true,
   },
 ];
 
+state.guideExIdx = 0;
+
+function getGuideData(exIdx) {
+  const g = GUIDE_EXAMPLES[exIdx];
+  const b0 = computeRuffiniStep(g.coeffs, g.r1);
+  const b1 = computeRuffiniStep(b0.quotient, g.r2);
+  const polyLatex = formatPolyLatex(g.coeffs);
+
+  const steps = [
+    `<strong>Paso 0:</strong> Escribimos las potencias ($x^3, x^2, x^1, x^0$) y los coeficientes de $${polyLatex}$.`,
+    `<strong>Paso 1 (1.ª extensión):</strong> Calculamos $${formatDivisorsRatioLatex(g.coeffs[3], g.coeffs[0], g.r1)}$. Bajamos el primer coeficiente ($${g.coeffs[0]}$).`,
+    `<strong>Paso 2:</strong> Multiplicamos $${b0.root.toLatex()} \\cdot (${b0.results[0].toLatex()}) = ${b0.mults[1].toLatex()}$ y sumamos $${g.coeffs[1]} + (${b0.mults[1].toLatex()}) = ${b0.results[1].toLatex()}$.`,
+    `<strong>Paso 3:</strong> Multiplicamos $${b0.root.toLatex()} \\cdot (${b0.results[1].toLatex()}) = ${b0.mults[2].toLatex()}$ y sumamos $${g.coeffs[2]} + (${b0.mults[2].toLatex()}) = ${b0.results[2].toLatex()}$.`,
+    `<strong>Paso 4:</strong> Multiplicamos $${b0.root.toLatex()} \\cdot (${b0.results[2].toLatex()}) = ${b0.mults[3].toLatex()}$ y sumamos $${g.coeffs[3]} + (${b0.mults[3].toLatex()}) = 0$. ¡Resto $0$!`,
+    `<strong>Paso 5 (2.ª extensión):</strong> Con el nuevo cociente, usamos $${formatDivisorsRatioLatex(b0.quotient[2].num, b0.quotient[0].num, g.r2)}$. Bajamos el $${b1.results[0].toLatex()}$.`,
+    `<strong>Paso 6:</strong> Multiplicamos $${b1.root.toLatex()} \\cdot (${b1.results[0].toLatex()}) = ${b1.mults[1].toLatex()}$ y sumamos $${b0.quotient[1].toLatex()} + (${b1.mults[1].toLatex()}) = ${b1.results[1].toLatex()}$.`,
+    `<strong>Paso 7:</strong> Multiplicamos $${b1.root.toLatex()} \\cdot (${b1.results[1].toLatex()}) = ${b1.mults[2].toLatex()}$ y sumamos $${b0.quotient[2].toLatex()} + (${b1.mults[2].toLatex()}) = 0$. ¡Resto $0$!`,
+  ];
+
+  return { g, b0, b1, polyLatex, steps };
+}
+
 function renderGuide() {
-  const s = GUIDE_STEPS[state.guideStep];
-  document.getElementById('guideStepText').innerHTML = s.text;
-  const r = s.reveal;
+  const { g, b0, b1, polyLatex, steps } = getGuideData(state.guideExIdx);
+  document.getElementById('guideBadge').textContent = g.badge;
+  document.getElementById('guideTitle').innerHTML = `Descomposición de $${polyLatex}$`;
+  document.getElementById('guideStepText').innerHTML = steps[state.guideStep];
+  const r = state.guideStep;
 
   const table = document.getElementById('guideRuffiniTable');
   table.innerHTML = `
@@ -714,23 +749,23 @@ function renderGuide() {
     </tr>
     <tr class="coeff-row">
       <td class="row-label">Coeficiente</td>
-      <td>2</td><td>-3</td><td>-14</td><td>15</td>
+      ${g.coeffs.map((c) => `<td>${c}</td>`).join('')}
     </tr>
     ${
       r >= 1
         ? `
       <tr>
-        <td class="root-cell ${r === 1 ? 'hl-active' : ''}"><strong>1</strong></td>
+        <td class="root-cell ${r === 1 ? 'hl-active' : ''}"><strong>$${b0.root.toLatex()}$</strong></td>
         <td class="empty-cell"></td>
-        <td class="${r === 2 ? 'hl-active' : ''}">${r >= 2 ? '2' : ''}</td>
-        <td class="${r === 3 ? 'hl-active' : ''}">${r >= 3 ? '-1' : ''}</td>
-        <td class="${r === 4 ? 'hl-active' : ''}">${r >= 4 ? '-15' : ''}</td>
+        <td class="${r === 2 ? 'hl-active' : ''}">${r >= 2 ? `$${b0.mults[1].toLatex()}$` : ''}</td>
+        <td class="${r === 3 ? 'hl-active' : ''}">${r >= 3 ? `$${b0.mults[2].toLatex()}$` : ''}</td>
+        <td class="${r === 4 ? 'hl-active' : ''}">${r >= 4 ? `$${b0.mults[3].toLatex()}$` : ''}</td>
       </tr>
       <tr class="result-row">
         <td class="row-label">Cociente/Resto</td>
-        <td class="${r === 1 ? 'hl-active' : ''}">2</td>
-        <td class="${r === 2 ? 'hl-active' : ''}">${r >= 2 ? '-1' : ''}</td>
-        <td class="${r === 3 ? 'hl-active' : ''}">${r >= 3 ? '-15' : ''}</td>
+        <td class="${r === 1 ? 'hl-active' : ''}">$${b0.results[0].toLatex()}$</td>
+        <td class="${r === 2 ? 'hl-active' : ''}">${r >= 2 ? `$${b0.results[1].toLatex()}$` : ''}</td>
+        <td class="${r === 3 ? 'hl-active' : ''}">${r >= 3 ? `$${b0.results[2].toLatex()}$` : ''}</td>
         <td class="${r >= 4 ? 'rem-zero' : ''}">${r >= 4 ? '0' : ''}</td>
       </tr>`
         : ''
@@ -739,16 +774,16 @@ function renderGuide() {
       r >= 5
         ? `
       <tr>
-        <td class="root-cell ${r === 5 ? 'hl-active' : ''}"><strong>3</strong></td>
+        <td class="root-cell ${r === 5 ? 'hl-active' : ''}"><strong>$${b1.root.toLatex()}$</strong></td>
         <td class="empty-cell"></td>
-        <td class="${r === 6 ? 'hl-active' : ''}">${r >= 6 ? '6' : ''}</td>
-        <td class="${r === 7 ? 'hl-active' : ''}">${r >= 7 ? '15' : ''}</td>
+        <td class="${r === 6 ? 'hl-active' : ''}">${r >= 6 ? `$${b1.mults[1].toLatex()}$` : ''}</td>
+        <td class="${r === 7 ? 'hl-active' : ''}">${r >= 7 ? `$${b1.mults[2].toLatex()}$` : ''}</td>
         <td class="empty-cell"></td>
       </tr>
       <tr class="result-row">
         <td class="row-label">Cociente/Resto</td>
-        <td class="${r === 5 ? 'hl-active' : ''}">2</td>
-        <td class="${r === 6 ? 'hl-active' : ''}">${r >= 6 ? '5' : ''}</td>
+        <td class="${r === 5 ? 'hl-active' : ''}">$${b1.results[0].toLatex()}$</td>
+        <td class="${r === 6 ? 'hl-active' : ''}">${r >= 6 ? `$${b1.results[1].toLatex()}$` : ''}</td>
         <td class="${r >= 7 ? 'rem-zero' : ''}">${r >= 7 ? '0' : ''}</td>
         <td class="empty-cell"></td>
       </tr>`
@@ -758,20 +793,45 @@ function renderGuide() {
 
   const concl = document.getElementById('guideConclusion');
   if (r === 7) {
+    const [a, b] = b1.quotient;
+    const d1 = formatDivisorsRatioLatex(g.coeffs[3], g.coeffs[0], b0.root);
+    const d2 = formatDivisorsRatioLatex(b0.quotient[2].num, b0.quotient[0].num, b1.root);
+    const underbraceLines = buildUnderbraceStepsLatex(g.coeffs, b0.root, b1.root, a, b);
+    const divFactor = Frac.gcd(Math.abs(a.num), Math.abs(b.num));
+    const f1Div = formatLinearLatex(b0.root.den, -b0.root.num);
+    const f2Div = formatLinearLatex(b1.root.den, -b1.root.num);
+    const f3Div = formatLinearLatex(new Frac(a.num / divFactor, 1), new Frac(b.num / divFactor, 1));
+    const divExamples = buildDivisionExamplesLatex(g.coeffs, f1Div, f2Div, f3Div);
+
     concl.classList.remove('hidden');
     concl.innerHTML = `
-      <strong>Por lo tanto,</strong><br>
-      $$2x^3 - 3x^2 - 14x + 15 = (x - 1)(x - 3)(ax + b)$$
-      $$2x^3 - 3x^2 - 14x + 15 = (x - 1)(x - 3)(2x + 5)$$
+      <div>$$${d1}$$</div>
+      <div>$$${d2}$$</div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:0.6rem 0;">
+      <strong>Por lo tanto,</strong>
+      ${underbraceLines.map((ln) => `<div>$$${ln}$$</div>`).join('')}
+      <hr style="border:none;border-top:1px solid var(--border);margin:0.6rem 0;">
+      <strong>Esto nos sirve si queremos hacer la división:</strong>
+      ${divExamples.map((dv) => `<div>$$${dv}$$</div>`).join('')}
     `;
   } else {
     concl.classList.add('hidden');
   }
 
   document.getElementById('guidePrevBtn').disabled = state.guideStep === 0;
-  document.getElementById('guideNextBtn').disabled = state.guideStep === GUIDE_STEPS.length - 1;
+  document.getElementById('guideNextBtn').disabled = state.guideStep === steps.length - 1;
   renderMath(document.getElementById('tab-guide'));
 }
+
+document.querySelectorAll('.guide-ex-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.guide-ex-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.guideExIdx = Number(btn.dataset.guide);
+    state.guideStep = 7; // Mostrar completo al cambiar de ejemplo para inspección rápida
+    renderGuide();
+  });
+});
 
 document.getElementById('guidePrevBtn').addEventListener('click', () => {
   if (state.guideStep > 0) {
@@ -780,7 +840,7 @@ document.getElementById('guidePrevBtn').addEventListener('click', () => {
   }
 });
 document.getElementById('guideNextBtn').addEventListener('click', () => {
-  if (state.guideStep < GUIDE_STEPS.length - 1) {
+  if (state.guideStep < 7) {
     state.guideStep++;
     renderGuide();
   }
@@ -857,6 +917,39 @@ document.getElementById('runSolverBtn').addEventListener('click', () => {
 
   const intLatex = roots.length === 3 ? formatIntegerFactorizationLatex(coeffs, roots) : null;
 
+  const dRatiosHtml = steps
+    .map((st, idx) => {
+      const prevCoeffs = idx === 0 ? coeffs : steps[idx - 1].quotient;
+      const a0 = prevCoeffs[prevCoeffs.length - 1] instanceof Frac ? prevCoeffs[prevCoeffs.length - 1].num : prevCoeffs[prevCoeffs.length - 1];
+      const an = prevCoeffs[0] instanceof Frac ? prevCoeffs[0].num : prevCoeffs[0];
+      return `<div>$$${formatDivisorsRatioLatex(a0, an, st.root)}$$</div>`;
+    })
+    .join('');
+
+  let underbraceHtml = '';
+  let divisionHtml = '';
+  if (extCount >= 2) {
+    const [a, b] = steps[1].quotient;
+    const uLines = buildUnderbraceStepsLatex(coeffs, roots[0], roots[1], a, b);
+    underbraceHtml = `
+      <div class="formula-pill" style="margin-top: 0.6rem;">
+        <strong>Desarrollo paso a paso:</strong>
+        ${uLines.map((ln) => `<div style="margin:0.35rem 0;">$$${ln}$$</div>`).join('')}
+      </div>
+    `;
+    const g = Frac.gcd(Math.abs(a.num), Math.abs(b.num));
+    const f1Div = formatLinearLatex(roots[0].den, -roots[0].num);
+    const f2Div = formatLinearLatex(roots[1].den, -roots[1].num);
+    const f3Div = formatLinearLatex(new Frac(a.num / g, 1), new Frac(b.num / g, 1));
+    const divExamples = buildDivisionExamplesLatex(coeffs, f1Div, f2Div, f3Div);
+    divisionHtml = `
+      <div class="formula-pill" style="margin-top: 0.6rem; text-align:left;">
+        <strong>Esto nos sirve si queremos hacer la división:</strong>
+        ${divExamples.map((dv) => `<div style="margin-top:0.4rem; text-align:center;">$$${dv}$$</div>`).join('')}
+      </div>
+    `;
+  }
+
   resEl.innerHTML = `
     <div class="table-scroll">
       <table class="ruffini-table">
@@ -870,11 +963,17 @@ document.getElementById('runSolverBtn').addEventListener('click', () => {
         ${rowsHtml}
       </table>
     </div>
-    <div class="formula-pill" style="margin-top: 1rem;">
+    <div class="formula-pill" style="margin-top: 1rem; text-align:left;">
+      <strong>Conjuntos de divisores por paso:</strong>
+      ${dRatiosHtml}
+    </div>
+    <div class="formula-pill" style="margin-top: 0.6rem;">
       <strong>Por lo tanto:</strong> $${polyLatex} = ${factorLine}$
     </div>
+    ${underbraceHtml}
+    ${divisionHtml}
     ${
-      intLatex
+      intLatex && extCount !== 2
         ? `<div class="formula-pill" style="margin-top: 0.5rem;">
              <strong>Forma en coeficientes enteros:</strong> $${polyLatex} = ${intLatex}$
            </div>`
